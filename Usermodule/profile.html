@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            width: 60%;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>User Profile</h2>
+        <p id="userInfo">Fetching user data...</p>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        // 🔥 Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyAntn_AszKaERCxDJaYr1AqYulMSUyQVv8",
+            authDomain: "fixmycampus-81313.firebaseapp.com",
+            projectId: "fixmycampus-81313",
+            storageBucket: "fixmycampus-81313.appspot.com",
+            messagingSenderId: "487715498876",
+            appId: "1:487715498876:web:dbb370d680ac56b6c312f9"
+        };
+
+        // 🔥 Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth();
+        const db = getFirestore(app);
+
+        // 🚀 Fetch user details from Firestore
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                console.log("✅ User logged in:", user.uid);
+                
+                // Reference to user document in Firestore
+                const userDocRef = doc(db, "users", user.uid);
+                
+                try {
+                    const docSnap = await getDoc(userDocRef);
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        console.log("📥 User Data:", data);
+                        document.getElementById('userInfo').innerHTML = `
+                            
+                            <p><strong>First Name:</strong> ${data.firstName || "N/A"}</p>
+                            <p><strong>Last Name:</strong> ${data.lastName || "N/A"}</p>
+                            <p><strong>Department:</strong> ${data.department || "N/A"}</p>
+                            <p><strong>Semester:</strong> ${data.semester || "N/A"}</p>
+                            <p><strong>Email:</strong> ${data.email || "N/A"}</p>
+                        `;
+                    } else {
+                        console.warn("⚠️ No user data found!");
+                        document.getElementById('userInfo').innerHTML = "<p style='color:red;'>No user data available.</p>";
+                    }
+                } catch (error) {
+                    console.error("❌ Error fetching data:", error);
+                    document.getElementById('userInfo').innerHTML = "<p style='color:red;'>Error fetching user data.</p>";
+                }
+            } else {
+                console.warn("⚠️ User not logged in. Redirecting...");
+                window.location.href = "index.html"; // Redirect to login
+            }
+        });
+    </script>
+
+</body>
+</html>
