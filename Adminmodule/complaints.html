@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Complaint List</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <div class="container mt-3">
+    <h2 class="text-center">Complaints List</h2>
+    <table class="table table-dark table-striped">
+      <thead>
+        <tr>
+          <th>SI No.</th>
+          <th>Name</th>
+          <th>Department</th>
+          <th>Semester</th>
+          <th>Complaint</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="tbody1"></tbody>
+    </table>
+  </div>
+
+  <!-- Modal for Updating Status -->
+  <div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="statusModalLabel">Update Status</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="updateStatusForm">
+            <div class="mb-3">
+              <label for="status" class="form-label">Status</label>
+              <input type="text" class="form-control" id="status" name="status" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Update</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+    import { getDatabase, ref, get, update, remove } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAntn_AszKaERCxDJaYr1AqYulMSUyQVv8",
+        authDomain: "fixmycampus-81313.firebaseapp.com",
+        databaseURL: "https://fixmycampus-81313-default-rtdb.firebaseio.com/",  
+        projectId: "fixmycampus-81313",
+        storageBucket: "fixmycampus-81313.appspot.com",
+        messagingSenderId: "487715498876",
+        appId: "1:487715498876:web:dbb370d680ac56b6c312f9"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    let tbody = document.getElementById('tbody1');
+
+    const fetchComplaints = async () => {
+      try {
+        const complaintsRef = ref(db, "complaintForm");
+        const snapshot = await get(complaintsRef);
+
+        if (snapshot.exists()) {
+          tbody.innerHTML = ""; // Clears table before adding new data
+          let sno = 1;
+
+          snapshot.forEach(childSnapshot => {
+            let data = childSnapshot.val();
+            console.log("Fetched Data:", data); // Debugging log
+            AddSingleRecord(sno++, data.name, data.department, data.semester, data.description, data.status, childSnapshot.key);
+          });
+
+        } else {
+          console.log("⚠️ No complaints found in the database.");
+        }
+      } catch (error) {
+        console.error("❌ Error fetching complaints:", error);
+      }
+    };
+
+    const AddSingleRecord = (sno, name, department, semester, description, status, key) => {
+      let trow = document.createElement('tr');
+      trow.innerHTML = `
+        <td>${sno}</td>
+        <td>${name || "N/A"}</td>
+        <td>${department || "N/A"}</td>
+        <td>${semester || "N/A"}</td>
+        <td>${typeof description !== "undefined" ? description : "No Description Provided"}</td>
+        <td>${status || "Pending"}</td>
+        <td>
+          <button class="btn btn-primary" onclick="handleStatusClick('${key}', '${status}')">Update Status</button>
+          <button class="btn btn-danger" onclick="handleDeleteClick('${key}')">Delete</button>
+        </td>
+      `;
+      tbody.appendChild(trow);
+    };
+
+    window.addEventListener('load', fetchComplaints);
+
+    window.handleStatusClick = (key, currentStatus) => {
+      const statusModal = new bootstrap.Modal(document.getElementById('statusModal'));
+      document.getElementById('status').value = currentStatus; // Set current status in the modal
+      statusModal.show();
+
+      const updateStatusForm = document.getElementById('updateStatusForm');
+      updateStatusForm.onsubmit = async (event) => {
+        event.preventDefault();
+        const status = document.getElementById('status').value;
+        try {
+          await update(ref(db, `complaintForm/${key}`), { status });
+          alert('Status updated successfully');
+          statusModal.hide();
+          fetchComplaints(); // Refresh the complaints list
+        } catch (error) {
+          console.error("❌ Error updating status:", error);
+        }
+      };
+    };
+
+    window.handleDeleteClick = async (key) => {
+      if (confirm("Are you sure you want to delete this complaint?")) {
+        try {
+          await remove(ref(db, `complaintForm/${key}`));
+          alert('Complaint deleted successfully');
+          fetchComplaints(); // Refresh the complaints list
+        } catch (error) {
+          console.error("❌ Error deleting complaint:", error);
+        }
+      }
+    };
+  </script>
+</body>
+</html>
