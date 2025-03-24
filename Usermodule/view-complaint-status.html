@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Complaint Status</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div class="container">
+        <h2>View Complaint Status</h2>
+        <div id="statusResult">Loading...</div>
+    </div>
+
+    <script type="module">
+        
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+import { getDatabase, ref, query, orderByChild, equalTo, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+
+// Firebase Config
+const firebaseConfig = {
+    apiKey: "AIzaSyAntn_AszKaERCxDJaYr1AqYulMSUyQVv8",
+    authDomain: "fixmycampus-81313.firebaseapp.com",
+    databaseURL: "https://fixmycampus-81313-default-rtdb.firebaseio.com/",
+    projectId: "fixmycampus-81313",
+    storageBucket: "fixmycampus-81313.appspot.com",
+    messagingSenderId: "487715498876",
+    appId: "1:487715498876:web:dbb370d680ac56b6c312f9"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+// 🚀 Check if Firebase is Loaded
+console.log("🔥 Firebase Initialized:", app);
+console.log("🔑 Firebase Auth:", auth);
+console.log("🗄 Firebase Database:", db);
+
+// 🔍 Function to Fetch Complaints
+async function fetchComplaints(userEmail) {
+    if (!userEmail) {
+        console.error("🚨 User email is missing.");
+        document.getElementById('statusResult').innerHTML = "<p>Please log in to view your complaints.</p>";
+        return;
+    }
+
+    // Normalize Email
+    const normalizedEmail = userEmail.toLowerCase().trim();
+    console.log("🔍 Checking complaints for:", normalizedEmail);
+
+    try {
+        const complaintsRef = ref(db, "complaintForm");
+        const q = query(complaintsRef, orderByChild("email"), equalTo(normalizedEmail));
+
+        console.log("📢 Query Created:", q);
+
+        const snapshot = await get(q);
+        console.log("📢 Firebase Response:", snapshot.exists());
+
+        if (snapshot.exists()) {
+            console.log("✅ Complaints Found:", snapshot.val());
+            let resultHTML = '<h3>Your Complaints</h3><ul>';
+            
+            snapshot.forEach(childSnapshot => {
+                const data = childSnapshot.val();
+                console.log("📢 Complaint Data:", data);
+
+                resultHTML += `<li><strong>${data.description || "No Description"}</strong>: ${data.status || "Pending"}</li>`;
+            });
+
+            resultHTML += '</ul>';
+            document.getElementById('statusResult').innerHTML = resultHTML;
+        } else {
+            console.warn("⚠️ No complaints found.");
+            document.getElementById('statusResult').innerHTML = '<p>No complaints found.</p>';
+        }
+    } catch (error) {
+        console.error("❌ Error fetching complaints:", error);
+        document.getElementById('statusResult').innerHTML = `<p>Error fetching complaints: ${error.message}</p>`;
+    }
+}
+
+// 🔐 Listen for Authentication Changes
+onAuthStateChanged(auth, (user) => {
+    console.log("🛂 Checking Auth State...");
+
+    if (user) {
+        console.log("✅ User Logged In:", user.email);
+        fetchComplaints(user.email);
+    } else {
+        console.warn("⚠️ User is NOT logged in.");
+        document.getElementById('statusResult').innerHTML = '<p>Please log in to view your complaints.</p>';
+    }
+});
+</script>
+
+</body>
+</html>
